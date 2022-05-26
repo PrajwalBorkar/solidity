@@ -1,3 +1,5 @@
+pragma abicoder v2;
+
 contract C {
 
     function test1() public returns (uint8[1][] memory) {

@@ -1,3 +1,5 @@
+pragma abicoder v2;
+
 contract C {
 
     struct CustomStruct{
@@ -47,6 +49,7 @@ contract C {
 }
 
 // ====
+// EVMVersion: >=constantinople
 // compileToEwasm: also
 // compileViaYul: also
 // ----

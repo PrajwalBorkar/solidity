@@ -1,3 +1,5 @@
+pragma abicoder v2;
+
 contract C {
         function f() external pure returns (string[2] memory rdatas) {
                 rdatas = [hex'74000001', hex'c4a40001'];

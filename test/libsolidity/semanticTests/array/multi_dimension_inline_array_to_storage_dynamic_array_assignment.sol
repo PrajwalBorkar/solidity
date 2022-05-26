@@ -1,3 +1,5 @@
+pragma abicoder v2;
+
 contract C {
     uint8[] array1 = [1,2,3,4,5,6,7,8,9,10,11,12,13, 14, 15, 16];
     uint8[][] array2 = [[1, 2, 3],[4, 5],[6,7,8,9,10,11,12], [13,14,15,16]];
@@ -18,6 +20,7 @@ contract C {
 }
 
 // ====
+// EVMVersion: >=constantinople
 // compileToEwasm: also
 // compileViaYul: also
 // ----

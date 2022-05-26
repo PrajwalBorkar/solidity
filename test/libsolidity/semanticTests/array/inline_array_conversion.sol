@@ -1,3 +1,5 @@
+pragma abicoder v2;
+
 contract C {
     string sString = "text2";
 

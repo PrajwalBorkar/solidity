@@ -10,8 +10,8 @@ contract C {
 	return dt;
     }
 }
-
 // ====
+// EVMVersion: >=constantinople
 // compileToEwasm: also
 // compileViaYul: also
 // ----

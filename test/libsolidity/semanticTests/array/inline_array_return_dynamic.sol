@@ -1,3 +1,5 @@
+pragma abicoder v2;
+
 contract C {
     function f() public returns (uint8[] memory) {
         return [1, 2, 3, 4, 5];

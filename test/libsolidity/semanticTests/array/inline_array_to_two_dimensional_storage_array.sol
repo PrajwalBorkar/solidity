@@ -1,3 +1,5 @@
+pragma abicoder v2;
+
 contract C {
     uint8[3][2] st = [[1, 2, 3], [4, 5, 6]];
     uint8[][] dt = [[1, 2], [3, 4, 5, 6]];
