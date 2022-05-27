@@ -2722,10 +2722,14 @@ BoolResult InlineArrayType::isImplicitlyConvertibleTo(Type const& _other) const
 				"does not match array size (" + to_string(arrayType->length().convert_to<unsigned>()) + ").");
 
 		for (Type const* c: components())
-			if (!c->isImplicitlyConvertibleTo(*arrayType->baseType()))
+		{
+			BoolResult result = c->isImplicitlyConvertibleTo(*arrayType->baseType());
+			if (!result)
 				return BoolResult::err(
 					"Invalid conversion from " + c->toString(false) +
-					" to " + arrayType->baseType()->toString(false));
+					" to " + arrayType->baseType()->toString(false) + ". " +
+					result.message());
+		}
 
 		return true;
 	}
