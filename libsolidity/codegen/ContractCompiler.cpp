@@ -990,8 +990,8 @@ bool ContractCompiler::visit(TryStatement const& _tryStatement)
 		if (successClause.parameters())
 		{
 			vector<Type const*> exprTypes{_tryStatement.externalCall().annotation().type};
-			if (auto tupleType = dynamic_cast<TupleType const*>(exprTypes.front()))
-				exprTypes = tupleType->components();
+			if (exprTypes.front()->category() == Type::Category::Tuple)
+				exprTypes = dynamic_cast<TupleType const*>(exprTypes.front())->components();
 			vector<ASTPointer<VariableDeclaration>> const& params = successClause.parameters()->parameters();
 			solAssert(exprTypes.size() == params.size(), "");
 			for (size_t i = 0; i < exprTypes.size(); ++i)
@@ -1346,8 +1346,8 @@ bool ContractCompiler::visit(VariableDeclarationStatement const& _variableDeclar
 		CompilerUtils utils(m_context);
 		compileExpression(*expression);
 		TypePointers valueTypes;
-		if (auto tupleType = dynamic_cast<TupleType const*>(expression->annotation().type))
-			valueTypes = tupleType->components();
+		if (expression->annotation().type->category() == Type::Category::Tuple)
+			valueTypes = dynamic_cast<TupleType const*>(expression->annotation().type)->components();
 		else
 			valueTypes = TypePointers{expression->annotation().type};
 		auto const& declarations = _variableDeclarationStatement.declarations();

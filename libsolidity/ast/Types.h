@@ -1168,9 +1168,13 @@ private:
 class TupleType: public CompositeType
 {
 public:
-	explicit TupleType(std::vector<Type const*> _types = {}): m_components(std::move(_types)) {}
+	explicit TupleType(Category _category, std::vector<Type const*> _types = {})
+	: m_category(_category), m_components(std::move(_types))
+	{
+		solAssert(_category == Category::InlineArray || _category == Category::Tuple);
+	}
 
-	Category category() const override { return Category::Tuple; }
+	Category category() const override { return m_category; }
 
 	BoolResult isImplicitlyConvertibleTo(Type const& _other) const override;
 	std::string richIdentifier() const override;
@@ -1181,6 +1185,7 @@ public:
 	u256 storageSize() const override;
 	bool hasSimpleZeroValueInMemory() const override { return false; }
 	Type const* mobileType() const override;
+	Type const* componentsCommonMobileType() const;
 
 	std::vector<Type const*> const& components() const { return m_components; }
 
@@ -1197,42 +1202,7 @@ protected:
 	}
 
 private:
-	std::vector<Type const*> const m_components;
-};
-
-// TODO: recheck if this is an CompositeType
-class InlineArrayType: public CompositeType
-{
-public:
-	explicit InlineArrayType(std::vector<Type const*> _types): m_components(std::move(_types)) {}
-
-	Category category() const override { return Category::InlineArray; }
-
-	BoolResult isImplicitlyConvertibleTo(Type const& _other) const override;
-	std::string richIdentifier() const override;
-	bool operator==(Type const& _other) const override;
-	TypeResult binaryOperatorResult(Token, Type const*) const override { return nullptr; }
-	std::string toString(bool) const override;
-	bool canBeStored() const override { return false; }
-	u256 storageSize() const override;
-	bool hasSimpleZeroValueInMemory() const override { return false; }
-	Type const* mobileType() const override;
-	Type const* componentsCommonMobileType() const;
-	std::vector<Type const*> const& components() const { return m_components; }
-
-protected:
-	std::vector<std::tuple<std::string, Type const*>> makeStackItems() const override;
-	std::vector<Type const*> decomposition() const override
-	{
-		// Currently calling InlineArrayType::decomposition() is not expected, because we cannot declare a variable of a InlineArrayType type.
-		// If that changes, before removing the solAssert, make sure the function does the right thing and is used properly.
-		// Note that different InlineArrayType members can have different data locations, so using decomposition() to check
-		// the tuple validity for a data location might require special care.
-		solUnimplemented("InlineArray decomposition is not expected.");
-		return m_components;
-	}
-
-private:
+	Category m_category;
 	std::vector<Type const*> const m_components;
 };
 

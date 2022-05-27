@@ -364,7 +364,7 @@ void StorageItem::storeValue(Type const& _sourceType, SourceLocation const& _loc
 			m_context << Instruction::POP; // remove byte offset
 			ArrayUtils(m_context).moveInlineArrayToStorage(
 				dynamic_cast<ArrayType const&>(*m_dataType),
-				dynamic_cast<InlineArrayType const&>(_sourceType)
+				dynamic_cast<TupleType const&>(_sourceType)
 			);
 			if (_move)
 				m_context << Instruction::POP;

@@ -483,12 +483,13 @@ void CompilerUtils::encodeToMemory(
 			);
 			stackPos += _givenTypes[i]->sizeOnStack();
 		}
-		else if (InlineArrayType const* inlineArrayType = dynamic_cast<InlineArrayType const*>(_givenTypes[i]))
+		else if (_givenTypes[i]->category() == Type::Category::InlineArray)
 		{
+			TupleType const* tupleType = dynamic_cast<TupleType const*>(_givenTypes[i]);
 			ArrayType const* arrayType = dynamic_cast<ArrayType const*>(_targetTypes[i]);
-			unsigned const sourceStackPosition = argSize - stackPos + dynPointers - inlineArrayType->sizeOnStack() + 2;
-			utils.moveInlineArrayToMemory(*inlineArrayType, *arrayType, sourceStackPosition, _padToWordBoundaries);
-			argSize -= inlineArrayType->sizeOnStack();
+			unsigned const sourceStackPosition = argSize - stackPos + dynPointers - tupleType->sizeOnStack() + 2;
+			utils.moveInlineArrayToMemory(*tupleType, *arrayType, sourceStackPosition, _padToWordBoundaries);
+			argSize -= tupleType->sizeOnStack();
 		}
 		else
 		{
@@ -557,16 +558,17 @@ void CompilerUtils::encodeToMemory(
 			m_context << dupInstruction(2 + dynPointers - thisDynPointer);
 			m_context << Instruction::MSTORE;
 			// stack: ... <end_of_mem>
-			if (InlineArrayType const* inlineArrayType = dynamic_cast<InlineArrayType const*>(_givenTypes[i]))
+			if (_givenTypes[i]->category() == Type::Category::InlineArray)
 			{
+				TupleType const* tupleType = dynamic_cast<TupleType const*>(_givenTypes[i]);
 				ArrayType const* arrayType = dynamic_cast<ArrayType const*>(_targetTypes[i]);
 
-				m_context << u256(inlineArrayType->components().size());
+				m_context << u256(tupleType->components().size());
 				storeInMemoryDynamic(*TypeProvider::uint256(), true);
 
-				unsigned const sourceStackPosition = argSize - stackPos + dynPointers - inlineArrayType->sizeOnStack() + 2;
-				utils.moveInlineArrayToMemory(*inlineArrayType, *arrayType, sourceStackPosition, _padToWordBoundaries);
-				argSize -= inlineArrayType->sizeOnStack();
+				unsigned const sourceStackPosition = argSize - stackPos + dynPointers - tupleType->sizeOnStack() + 2;
+				utils.moveInlineArrayToMemory(*tupleType, *arrayType, sourceStackPosition, _padToWordBoundaries);
+				argSize -= tupleType->sizeOnStack();
 			}
 			else if (_givenTypes[i]->category() == Type::Category::StringLiteral)
 			{
@@ -1139,12 +1141,12 @@ void CompilerUtils::convertType(
 	}
 	case Type::Category::InlineArray:
 	{
-		InlineArrayType const& inlineArray = dynamic_cast<InlineArrayType const&>(_typeOnStack);
+		TupleType const& tupleType = dynamic_cast<TupleType const&>(_typeOnStack);
 		ArrayType const& arrayType = dynamic_cast<ArrayType const&>(_targetType);
 
 		solAssert(arrayType.location() == DataLocation::Memory);
 
-		auto const& components = inlineArray.components();
+		auto const& components = tupleType.components();
 		m_context << u256(components.size());
 		// stack: <source ref> <length>
 		ArrayUtils(m_context).convertLengthToSize(arrayType, true);

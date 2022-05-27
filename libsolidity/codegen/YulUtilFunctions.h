@@ -254,7 +254,7 @@ public:
 	/// signature (to_slot, from_ptr) ->
 	std::string copyArrayToStorageFunction(ArrayType const& _fromType, ArrayType const& _toType);
 
-	std::string copyInlineArrayToStorageFunction(InlineArrayType const& _fromType, ArrayType const& _toType);
+	std::string copyInlineArrayToStorageFunction(TupleType const& _fromType, ArrayType const& _toType);
 
 
 	/// @returns the name of a function that will copy a byte array to storage
@@ -540,7 +540,7 @@ private:
 	/// Special case of conversion functions - handles all array conversions.
 	std::string arrayConversionFunction(ArrayType const& _from, ArrayType const& _to);
 
-	std::string inlineArrayConversionFunction(InlineArrayType const& _from, ArrayType const& _to);
+	std::string inlineArrayConversionFunction(TupleType const& _from, ArrayType const& _to);
 
 	/// Special case of conversionFunction - handles everything that does not
 	/// use exactly one variable to hold the value.

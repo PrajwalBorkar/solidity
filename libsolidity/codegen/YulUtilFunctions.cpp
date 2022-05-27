@@ -1897,7 +1897,7 @@ string YulUtilFunctions::copyArrayToStorageFunction(ArrayType const& _fromType, 
 	});
 }
 
-string YulUtilFunctions::copyInlineArrayToStorageFunction(InlineArrayType const& _fromType, ArrayType const& _toType)
+string YulUtilFunctions::copyInlineArrayToStorageFunction(TupleType const& _fromType, ArrayType const& _toType)
 {
 	if (!_toType.isDynamicallySized())
 		solAssert(_fromType.components().size() <= _toType.length(), "");
@@ -2843,7 +2843,7 @@ string YulUtilFunctions::updateStorageValueFunction(
 			templ("extraParams",  _fromType.sizeOnStack() ?
 				", " + suffixedVariableNameList("value_", 0, _fromType.sizeOnStack()) : "");
 			templ("copyToStorage", copyInlineArrayToStorageFunction(
-				dynamic_cast<InlineArrayType const&>(_fromType),
+				dynamic_cast<TupleType const&>(_fromType),
 				dynamic_cast<ArrayType const&>(_toType)
 			));
 
@@ -3349,7 +3349,7 @@ string YulUtilFunctions::conversionFunction(Type const& _from, Type const& _to)
 	else if (_from.category() == Type::Category::InlineArray)
 	{
 		solAssert(_to.category() == Type::Category::Array, "");
-		return inlineArrayConversionFunction(dynamic_cast<InlineArrayType const&>(_from), dynamic_cast<ArrayType const&>(_to));
+		return inlineArrayConversionFunction(dynamic_cast<TupleType const&>(_from), dynamic_cast<ArrayType const&>(_to));
 	}
 
 	if (_from.sizeOnStack() != 1 || _to.sizeOnStack() != 1)
@@ -3800,7 +3800,7 @@ string YulUtilFunctions::arrayConversionFunction(ArrayType const& _from, ArrayTy
 	});
 }
 
-string YulUtilFunctions::inlineArrayConversionFunction(InlineArrayType const& _from, ArrayType const& _to)
+string YulUtilFunctions::inlineArrayConversionFunction(TupleType const& _from, ArrayType const& _to)
 {
 	if (_to.dataStoredIn(DataLocation::CallData))
 		solAssert(false);

@@ -109,7 +109,7 @@ public:
 
 	static TupleType const* emptyTuple() noexcept { return &m_emptyTuple; }
 
-	static InlineArrayType const* inlineArray(std::vector<Type const*> members);
+	static TupleType const* inlineArray(std::vector<Type const*> members);
 
 	static ReferenceType const* withLocation(ReferenceType const* _type, DataLocation _location, bool _isPointer);
 

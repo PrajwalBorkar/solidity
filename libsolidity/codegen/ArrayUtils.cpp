@@ -327,7 +327,7 @@ void ArrayUtils::clearLeftoversInSlot(Type const& _type, unsigned _byteOffsetPos
 
 void ArrayUtils::moveInlineArrayToStorage(
 	ArrayType const& _targetType,
-	InlineArrayType const& _sourceType,
+	TupleType const& _sourceType,
 	unsigned _sourcePosition) const
 {
 	// stack: source... ... target_ref
@@ -367,7 +367,7 @@ void ArrayUtils::moveInlineArrayToStorage(
 				copyLiteralToStorage(*stringLiteralType);
 			else
 			{
-				InlineArrayType const* sourceType = dynamic_cast<InlineArrayType const*>(sourceComponentType);
+				TupleType const* sourceType = dynamic_cast<TupleType const*>(sourceComponentType);
 				solAssert(sourceType);
 				moveInlineArrayToStorage(*targetType, *sourceType, _sourcePosition + 1);
 				// stack: source... ... target_ref target_data_pos component_data_ref
@@ -727,7 +727,7 @@ void ArrayUtils::copyArrayToMemory(ArrayType const& _sourceType, bool _padToWord
 }
 
 void ArrayUtils::moveInlineArrayToMemory(
-	InlineArrayType const& _sourceType,
+	TupleType const& _sourceType,
 	ArrayType const& _targetType,
 	unsigned _sourcePosition,
 	bool _padToWordBoundaries) const

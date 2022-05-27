@@ -1237,8 +1237,8 @@ void IRGeneratorForStatements::endVisit(FunctionCall const& _functionCall)
 		Type const* firstArgType = arguments.front()->annotation().type;
 		TypePointers targetTypes;
 
-		if (TupleType const* targetTupleType = dynamic_cast<TupleType const*>(_functionCall.annotation().type))
-			targetTypes = targetTupleType->components();
+		if (_functionCall.annotation().type->category() == Type::Category::Tuple)
+			targetTypes = dynamic_cast<TupleType const*>(_functionCall.annotation().type)->components();
 		else
 			targetTypes = TypePointers{_functionCall.annotation().type};
 
@@ -2261,10 +2261,7 @@ void IRGeneratorForStatements::endVisit(IndexAccess const& _indexAccess)
 	}
 	else if (baseType.category() == Type::Category::InlineArray)
 	{
-		InlineArrayType const& inlineArrayType = dynamic_cast<InlineArrayType const&>(baseType);
-
-		ArrayType const* arrayType = TypeProvider::array(DataLocation::Memory, inlineArrayType.componentsCommonMobileType(), inlineArrayType.components().size());
-
+		ArrayType const* arrayType = dynamic_cast<ArrayType const*> (baseType.mobileType());
 		IRVariable irArray = convert(IRVariable(_indexAccess.baseExpression()), *arrayType);
 
 		string const memAddress =
@@ -2279,11 +2276,6 @@ void IRGeneratorForStatements::endVisit(IndexAccess const& _indexAccess)
 			*arrayType->baseType(),
 			IRLValue::Memory{memAddress}
 		});
-
-// TODO: replace "setLValue" with define to block following syntax "[0,1,2][0] = 3"
-//		define(IRVariable(IRNames::localVariable(_indexAccess), *baseType),
-//			   readFromLValue(IRLValue{*arrayType->baseType(), IRLValue::Memory{memAddress}})
-//		);
 	}
 
 	else if (baseType.category() == Type::Category::FixedBytes)
@@ -2534,7 +2526,7 @@ void IRGeneratorForStatements::appendExternalFunctionCall(
 	}
 
 	// NOTE: When the expected size of returndata is static, we pass that in to the call opcode and it gets copied automatically.
-    // When it's dynamic, we get zero from estimatedReturnSize() instead and then we need an explicit returndatacopy().
+	// When it's dynamic, we get zero from estimatedReturnSize() instead and then we need an explicit returndatacopy().
 	Whiskers templ(R"(
 		<?checkExtcodesize>
 			if iszero(extcodesize(<address>)) { <revertNoCode>() }

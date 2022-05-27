@@ -224,8 +224,8 @@ void SymbolicState::buildABIFunctions(set<FunctionCall const*> const& _abiFuncti
 			solAssert(args.size() == 2, "Unexpected number of arguments for abi.decode");
 			inTypes.emplace_back(TypeProvider::bytesMemory());
 			auto argType = args.at(1)->annotation().type;
-			if (auto const* tupleType = dynamic_cast<TupleType const*>(argType))
-				for (auto componentType: tupleType->components())
+			if (argType->category() == frontend::Type::Category::Tuple)
+				for (auto componentType: dynamic_cast<TupleType const*>(argType)->components())
 				{
 					auto typeType = dynamic_cast<TypeType const*>(componentType);
 					solAssert(typeType, "");

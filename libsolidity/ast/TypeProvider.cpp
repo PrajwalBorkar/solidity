@@ -37,7 +37,7 @@ unique_ptr<ArrayType> TypeProvider::m_bytesCalldata;
 unique_ptr<ArrayType> TypeProvider::m_stringStorage;
 unique_ptr<ArrayType> TypeProvider::m_stringMemory;
 
-TupleType const TypeProvider::m_emptyTuple{};
+TupleType const TypeProvider::m_emptyTuple{Type::Category::Tuple};
 AddressType const TypeProvider::m_payableAddress{StateMutability::Payable};
 AddressType const TypeProvider::m_address{StateMutability::NonPayable};
 
@@ -404,12 +404,12 @@ TupleType const* TypeProvider::tuple(vector<Type const*> members)
 	if (members.empty())
 		return &m_emptyTuple;
 
-	return createAndGet<TupleType>(move(members));
+	return createAndGet<TupleType>(Type::Category::Tuple, move(members));
 }
 
-InlineArrayType const* TypeProvider::inlineArray(vector<Type const*> _members)
+TupleType const* TypeProvider::inlineArray(vector<Type const*> _members)
 {
-	return createAndGet<InlineArrayType>(move(_members));
+	return createAndGet<TupleType>(Type::Category::InlineArray, move(_members));
 }
 
 ReferenceType const* TypeProvider::withLocation(ReferenceType const* _type, DataLocation _location, bool _isPointer)

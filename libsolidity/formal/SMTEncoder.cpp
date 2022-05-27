@@ -391,7 +391,7 @@ void SMTEncoder::endVisit(Assignment const& _assignment)
 	}
 	else
 	{
-		if (dynamic_cast<TupleType const*>(_assignment.rightHandSide().annotation().type))
+		if (_assignment.rightHandSide().annotation().type->category() == Type::Category::Tuple)
 			tupleAssignment(_assignment.leftHandSide(), _assignment.rightHandSide());
 		else
 		{

@@ -291,7 +291,7 @@ string ABIFunctions::abiEncodingFunction(
 	{
 		solAssert(_to.category() == Type::Category::Array);
 		return abiEncodingFunctionInlineArray(
-			dynamic_cast<InlineArrayType const&>(_from),
+			dynamic_cast<TupleType const&>(_from),
 			dynamic_cast<ArrayType const&>(_to),
 			_options);
 
@@ -642,7 +642,7 @@ string ABIFunctions::abiEncodingFunctionSimpleArray(
 }
 
 string ABIFunctions::abiEncodingFunctionInlineArray(
-	InlineArrayType const& _from,
+	TupleType const& _from,
 	ArrayType const& _to,
 	EncodingOptions const& _options
 )

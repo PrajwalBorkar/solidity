@@ -68,8 +68,8 @@ bool TypeChecker::typeSupportedByOldABIEncoder(Type const& _type, bool _isLibrar
 	}
 	if (_type.category() == Type::Category::InlineArray)
 	{
-		auto const& inlineArray = dynamic_cast<InlineArrayType const&>(_type);
-		return typeSupportedByOldABIEncoder(*inlineArray.mobileType(), _isLibraryCall);
+		TupleType const& tupleType = dynamic_cast<TupleType const&>(_type);
+		return typeSupportedByOldABIEncoder(*tupleType.mobileType(), _isLibraryCall);
 	}
 	return true;
 }
@@ -1195,13 +1195,14 @@ void TypeChecker::endVisit(Return const& _return)
 	TypePointers returnTypes;
 	for (auto const& var: params->parameters())
 		returnTypes.push_back(type(*var));
-	if (auto tupleType = dynamic_cast<TupleType const*>(type(*_return.expression())))
+	if (type(*_return.expression())->category() == Type::Category::Tuple)
 	{
+		auto tupleType = dynamic_cast<TupleType const*>(type(*_return.expression()));
 		if (tupleType->components().size() != params->parameters().size())
 			m_errorReporter.typeError(5132_error, _return.location(), "Different number of arguments in return statement than in returns declaration.");
 		else
 		{
-			BoolResult result = tupleType->isImplicitlyConvertibleTo(TupleType(returnTypes));
+			BoolResult result = tupleType->isImplicitlyConvertibleTo(TupleType(Type::Category::Tuple, returnTypes));
 			if (!result)
 				m_errorReporter.typeErrorConcatenateDescriptions(
 					5992_error,
@@ -1209,7 +1210,7 @@ void TypeChecker::endVisit(Return const& _return)
 					"Return argument type " +
 					type(*_return.expression())->toString() +
 					" is not implicitly convertible to expected type " +
-					TupleType(returnTypes).toString(false) + ".",
+					TupleType(Type::Category::Tuple, returnTypes).toString(false) + ".",
 					result.message()
 				);
 		}
@@ -1226,7 +1227,7 @@ void TypeChecker::endVisit(Return const& _return)
 				_return.expression()->location(),
 				"Return argument type " +
 				type(*_return.expression())->toString() +
-				" is not implicitly convertible to expected type (type of first return variable) " +
+				" is not implicitly convertible to expected type " +
 				expected->toString() + ".",
 				result.message()
 			);
@@ -1296,8 +1297,11 @@ bool TypeChecker::visit(VariableDeclarationStatement const& _statement)
 
 	_statement.initialValue()->accept(*this);
 	TypePointers valueTypes;
-	if (auto tupleType = dynamic_cast<TupleType const*>(type(*_statement.initialValue())))
+	if (type(*_statement.initialValue())->category() == Type::Category::Tuple)
+	{
+		auto tupleType = dynamic_cast<TupleType const*>(type(*_statement.initialValue()));
 		valueTypes = tupleType->components();
+	}
 	else
 		valueTypes = TypePointers{type(*_statement.initialValue())};
 
@@ -1513,8 +1517,9 @@ bool TypeChecker::visit(Assignment const& _assignment)
 
 	checkExpressionAssignment(*t, _assignment.leftHandSide());
 
-	if (TupleType const* tupleType = dynamic_cast<TupleType const*>(t))
+	if (t->category() == Type::Category::Tuple)
 	{
+		TupleType const* tupleType = dynamic_cast<TupleType const*>(t);
 		if (_assignment.assignmentOperator() != Token::Assign)
 			m_errorReporter.typeError(
 				4289_error,
@@ -1527,7 +1532,7 @@ bool TypeChecker::visit(Assignment const& _assignment)
 		expectType(_assignment.rightHandSide(), *tupleType);
 
 		// expectType does not cause fatal errors, so we have to check again here.
-		if (dynamic_cast<TupleType const*>(type(_assignment.rightHandSide())))
+		if (type(_assignment.rightHandSide())->category() == Type::Category::Tuple)
 			checkDoubleStorageAssignment(_assignment);
 	}
 	else if (_assignment.assignmentOperator() == Token::Assign)
@@ -2164,8 +2169,8 @@ void TypeChecker::typeCheckABIEncodeCallFunction(FunctionCall const& _functionCa
 	// Tuples with only one component become that component
 	vector<ASTPointer<Expression const>> callArguments;
 
-	auto const* tupleType = dynamic_cast<TupleType const*>(type(*arguments[1]));
-	if (tupleType)
+
+	if (type(*arguments[1])->category() == Type::Category::Tuple)
 	{
 		auto const& argumentTuple = dynamic_cast<TupleExpression const&>(*arguments[1].get());
 		callArguments = decltype(callArguments){argumentTuple.components().begin(), argumentTuple.components().end()};
@@ -2175,7 +2180,7 @@ void TypeChecker::typeCheckABIEncodeCallFunction(FunctionCall const& _functionCa
 
 	if (externalFunctionType->parameterTypes().size() != callArguments.size())
 	{
-		if (tupleType)
+		if (type(*arguments[1])->category() == Type::Category::Tuple)
 			m_errorReporter.typeError(
 				7788_error,
 				_functionCall.location(),
@@ -3259,7 +3264,7 @@ bool TypeChecker::visit(IndexAccess const& _access)
 	}
 	case Type::Category::InlineArray:
 	{
-		InlineArrayType const& actualType = dynamic_cast<InlineArrayType const&>(*baseType);
+		TupleType const& actualType = dynamic_cast<TupleType const&>(*baseType);
 		if (!index)
 			m_errorReporter.typeError(5093_error, _access.location(), "Index expression cannot be omitted.");
 		else
@@ -3376,8 +3381,8 @@ bool TypeChecker::visit(IndexRangeAccess const& _access)
 	ArrayType const* arrayType = nullptr;
 	if (auto const* arraySlice = dynamic_cast<ArraySliceType const*>(exprType))
 		arrayType = &arraySlice->arrayType();
-	else if (auto const* inlineArray = dynamic_cast<InlineArrayType const*>(exprType))
-		arrayType = TypeProvider::array(DataLocation::Memory, inlineArray->componentsCommonMobileType(), inlineArray->components().size());
+	else if (exprType->category() == Type::Category::InlineArray)
+		arrayType = dynamic_cast<ArrayType const*>(exprType->mobileType());
 	else if (!(arrayType = dynamic_cast<ArrayType const*>(exprType)))
 		m_errorReporter.fatalTypeError(4781_error, _access.location(), "Index range access is only possible for arrays and array slices.");
 

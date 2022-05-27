@@ -191,7 +191,7 @@ private:
 		EncodingOptions const& _options
 	);
 	std::string abiEncodingFunctionInlineArray(
-		InlineArrayType const& _givenType,
+		TupleType const& _givenType,
 		ArrayType const& _targetType,
 		EncodingOptions const& _options
 	);

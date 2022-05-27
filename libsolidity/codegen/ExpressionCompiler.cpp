@@ -57,8 +57,9 @@ Type const* closestType(Type const* _type, Type const* _targetType, bool _isShif
 {
 	if (_isShiftOp)
 		return _type->mobileType();
-	else if (auto const* tupleType = dynamic_cast<TupleType const*>(_type))
+	else if (_type->category() == Type::Category::Tuple)
 	{
+		auto const* tupleType = dynamic_cast<TupleType const*>(_type);
 		solAssert(_targetType, "");
 		TypePointers const& targetComponents = dynamic_cast<TupleType const&>(*_targetType).components();
 		solAssert(tupleType->components().size() == targetComponents.size(), "");
@@ -73,17 +74,18 @@ Type const* closestType(Type const* _type, Type const* _targetType, bool _isShif
 		}
 		return TypeProvider::tuple(move(tempComponents));
 	}
-	else if (auto const* inlineArrayType = dynamic_cast<InlineArrayType const*>(_type))
+	else if (_type->category() == Type::Category::InlineArray)
 	{
+		TupleType const* tupleType = dynamic_cast<TupleType const*>(_type);
 		Type const& targetBaseType = *dynamic_cast<ArrayType const&>(*_targetType).baseType();
 		Type const* resultBaseType = closestType(
-			inlineArrayType->componentsCommonMobileType(), &targetBaseType, _isShiftOp
+			tupleType->componentsCommonMobileType(), &targetBaseType, _isShiftOp
 		);
 
 		return TypeProvider::array(
 			DataLocation::Memory,
 			resultBaseType,
-			inlineArrayType->components().size()
+			tupleType->components().size()
 		);
 	}
 	else
@@ -314,7 +316,7 @@ bool ExpressionCompiler::visit(Assignment const& _assignment)
 	Type const& leftType = *_assignment.leftHandSide().annotation().type;
 	if (leftType.category() == Type::Category::Tuple)
 	{
-		solAssert(*_assignment.annotation().type == TupleType(), "");
+		solAssert(*_assignment.annotation().type == TupleType(Type::Category::Tuple), "");
 		solAssert(op == Token::Assign, "");
 	}
 	else
@@ -1265,8 +1267,8 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 				solAssert(arguments.size() == 2);
 
 				// Account for tuples with one component which become that component
-				if (auto const tupleType = dynamic_cast<TupleType const*>(arguments[1]->annotation().type))
-					argumentTypes = tupleType->components();
+				if (arguments[1]->annotation().type->category() == Type::Category::Tuple)
+					argumentTypes = dynamic_cast<TupleType const*>(arguments[1]->annotation().type)->components();
 				else
 					argumentTypes.emplace_back(arguments[1]->annotation().type);
 
@@ -1386,8 +1388,8 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			arguments.front()->accept(*this);
 			Type const* firstArgType = arguments.front()->annotation().type;
 			TypePointers targetTypes;
-			if (TupleType const* targetTupleType = dynamic_cast<TupleType const*>(_functionCall.annotation().type))
-				targetTypes = targetTupleType->components();
+			if (_functionCall.annotation().type->category() == Type::Category::Tuple)
+				targetTypes = dynamic_cast<TupleType const*>(_functionCall.annotation().type)->components();
 			else
 				targetTypes = TypePointers{_functionCall.annotation().type};
 			if (
@@ -2126,15 +2128,14 @@ bool ExpressionCompiler::visit(IndexAccess const& _indexAccess)
 		}
 		case Type::Category::InlineArray:
 		{
-			InlineArrayType const& inlineArrayType = dynamic_cast<InlineArrayType const&>(baseType);
 			solAssert(_indexAccess.indexExpression(), "Index expression expected.");
-
-			ArrayType const* arrayType = TypeProvider::array(DataLocation::Memory, inlineArrayType.componentsCommonMobileType(), inlineArrayType.components().size());
+			TupleType const& tupleType = dynamic_cast<TupleType const&>(baseType);
+			ArrayType const* arrayType = dynamic_cast<ArrayType const*>(tupleType.mobileType());
 
 			// stack layout: <source ref> (variably sized)
 			acceptAndConvert(_indexAccess.baseExpression(), *arrayType, true);
-			utils().moveIntoStack(inlineArrayType.sizeOnStack());
-			utils().popStackSlots(inlineArrayType.sizeOnStack());
+			utils().moveIntoStack(tupleType.sizeOnStack());
+			utils().popStackSlots(tupleType.sizeOnStack());
 			// stack layout: <array_ref> [<length>]
 
 			acceptAndConvert(*_indexAccess.indexExpression(), *TypeProvider::uint256(), true);

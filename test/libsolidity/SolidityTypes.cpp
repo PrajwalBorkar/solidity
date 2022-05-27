@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(type_identifiers)
 	EnumDefinition e(++id, {}, make_shared<string>("Enum"), {}, {});
 	BOOST_CHECK_EQUAL(e.type()->identifier(), "t_type$_t_enum$_Enum_$4_$");
 
-	TupleType t({e.type(), s.type(), stringArray, nullptr});
+	TupleType t(Type::Category::Tuple, {e.type(), s.type(), stringArray, nullptr});
 	BOOST_CHECK_EQUAL(t.identifier(), "t_tuple$_t_type$_t_enum$_Enum_$4_$_$_t_type$_t_struct$_Struct_$3_storage_ptr_$_$_t_array$_t_string_storage_$20_storage_ptr_$__$");
 
 	Type const* keccak256fun = TypeProvider::function(strings{}, strings{}, FunctionType::Kind::KECCAK256);

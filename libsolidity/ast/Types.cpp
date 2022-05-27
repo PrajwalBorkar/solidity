@@ -316,14 +316,8 @@ Type const* Type::fullEncodingType(bool _inLibraryCall, bool _encoderV2, bool) c
 		return encodingType;
 	Type const* baseType = encodingType;
 
-	if (auto const inlineArray = dynamic_cast<InlineArrayType const*>(baseType))
-	{
-		baseType = TypeProvider::array(
-			DataLocation::Memory,
-			inlineArray->componentsCommonMobileType(),
-			inlineArray->components().size()
-		);
-	}
+	if (baseType && baseType->category() == Type::Category::InlineArray)
+		baseType = baseType->mobileType();
 
 	while (auto const* arrayType = dynamic_cast<ArrayType const*>(baseType))
 	{
@@ -2630,22 +2624,52 @@ vector<tuple<string, Type const*>> UserDefinedValueType::makeStackItems() const
 
 BoolResult TupleType::isImplicitlyConvertibleTo(Type const& _other) const
 {
-	if (auto tupleType = dynamic_cast<TupleType const*>(&_other))
+	if (m_category == Category::Tuple)
 	{
-		TypePointers const& targets = tupleType->components();
-		if (targets.empty())
-			return components().empty();
-		if (components().size() != targets.size())
+		if (auto tupleType = dynamic_cast<TupleType const*>(&_other))
+		{
+			TypePointers const& targets = tupleType->components();
+			if (targets.empty())
+				return components().empty();
+			if (components().size() != targets.size())
+				return false;
+			for (size_t i = 0; i < targets.size(); ++i)
+				if (!components()[i] && targets[i])
+					return false;
+				else if (components()[i] && targets[i] && !components()[i]->isImplicitlyConvertibleTo(*targets[i]))
+					return false;
+			return true;
+		}
+		else
 			return false;
-		for (size_t i = 0; i < targets.size(); ++i)
-			if (!components()[i] && targets[i])
-				return false;
-			else if (components()[i] && targets[i] && !components()[i]->isImplicitlyConvertibleTo(*targets[i]))
-				return false;
-		return true;
 	}
 	else
-		return false;
+	{
+		solAssert(m_category == Category::InlineArray);
+		auto arrayType = dynamic_cast<ArrayType const*>(&_other);
+
+		if (!arrayType || arrayType->isByteArrayOrString())
+			return BoolResult::err("Array literal can not be converted to byte array or string.");
+		else
+		{
+			if (!arrayType->isDynamicallySized() && arrayType->length() != components().size())
+				return BoolResult::err(
+					"Number of components in array literal (" + to_string(components().size()) + ") " +
+					"does not match array size (" + to_string(arrayType->length().convert_to<unsigned>()) + ").");
+
+			for (Type const* c: components())
+			{
+				BoolResult result = c->isImplicitlyConvertibleTo(*arrayType->baseType());
+				if (!result)
+					return BoolResult::err(
+						"Invalid conversion from " + c->toString(false) +
+						" to " + arrayType->baseType()->toString(false) + "."
+						+ (result.message().empty() ? "" : " ") + result.message() );
+			}
+
+			return true;
+		}
+	}
 }
 
 string TupleType::richIdentifier() const
@@ -2656,7 +2680,9 @@ string TupleType::richIdentifier() const
 bool TupleType::operator==(Type const& _other) const
 {
 	if (auto tupleType = dynamic_cast<TupleType const*>(&_other))
-		return components() == tupleType->components();
+		return
+			m_category == _other.category() &&
+			components() == tupleType->components();
 	else
 		return false;
 }
@@ -2692,89 +2718,34 @@ vector<tuple<string, Type const*>> TupleType::makeStackItems() const
 
 Type const* TupleType::mobileType() const
 {
-	TypePointers mobiles;
-	for (auto const& c: components())
+	if (m_category == Category::Tuple)
 	{
-		if (c)
+		TypePointers mobiles;
+		for (auto const& c: components())
 		{
-			auto mt = c->mobileType();
-			if (!mt)
-				return nullptr;
-			mobiles.push_back(mt);
+			if (c)
+			{
+				auto mt = c->mobileType();
+				if (!mt)
+					return nullptr;
+				mobiles.push_back(mt);
+			}
+			else
+				mobiles.push_back(nullptr);
 		}
-		else
-			mobiles.push_back(nullptr);
+		return TypeProvider::tuple(move(mobiles));
 	}
-	return TypeProvider::tuple(move(mobiles));
-}
-
-BoolResult InlineArrayType::isImplicitlyConvertibleTo(Type const& _other) const
-{
-	auto arrayType = dynamic_cast<ArrayType const*>(&_other);
-
-	if (!arrayType || arrayType->isByteArrayOrString())
-		return BoolResult::err("Array literal can not be converted to byte array or string.");
 	else
 	{
-		if (!arrayType->isDynamicallySized() && arrayType->length() != components().size())
-			return BoolResult::err(
-				"Number of components in array literal (" + to_string(components().size()) + ") " +
-				"does not match array size (" + to_string(arrayType->length().convert_to<unsigned>()) + ").");
-
-		for (Type const* c: components())
-		{
-			BoolResult result = c->isImplicitlyConvertibleTo(*arrayType->baseType());
-			if (!result)
-				return BoolResult::err(
-					"Invalid conversion from " + c->toString(false) +
-					" to " + arrayType->baseType()->toString(false) + ". " +
-					result.message());
-		}
-
-		return true;
+		return TypeProvider::array(
+			DataLocation::Memory,
+			componentsCommonMobileType(),
+			components().size()
+		);
 	}
 }
 
-string InlineArrayType::richIdentifier() const
-{
-	return "t_inline_array" + identifierList(components());
-}
-
-bool InlineArrayType::operator==(Type const& _other) const
-{
-	if (auto inlineArrayType = dynamic_cast<InlineArrayType const*>(&_other))
-		// TODO: raise issue - do not compare by pointer for tuple type
-		return components() == inlineArrayType->components();
-	else
-		return false;
-}
-
-string InlineArrayType::toString(bool _short) const
-{
-	vector<string> result;
-
-	for (auto const& t: components())
-		result.push_back(t->toString(_short));
-
-	// TODO joinHumanReadable - is it fine to have a space here?
-	return "inline_array(" + util::joinHumanReadable(result) + ")";
-}
-
-u256 InlineArrayType::storageSize() const
-{
-	solAssert(false, "Storage size of non-storable InlineArrayType type requested.");
-}
-
-Type const* InlineArrayType::mobileType() const
-{
-	return TypeProvider::array(
-		DataLocation::Memory,
-		componentsCommonMobileType(),
-		components().size()
-	);
-}
-
-Type const* InlineArrayType::componentsCommonMobileType() const
+Type const* TupleType::componentsCommonMobileType() const
 {
 	solAssert(!m_components.empty(), "Empty array literal");
 	Type const* commonType = nullptr;
@@ -2787,15 +2758,6 @@ Type const* InlineArrayType::componentsCommonMobileType() const
 
 	return TypeProvider::withLocationIfReference(DataLocation::Memory, commonType);
 }
-
-vector<tuple<string, Type const*>> InlineArrayType::makeStackItems() const
-{
-	vector<tuple<string, Type const*>> slots;
-	for (auto && [index, type]: components() | ranges::views::enumerate)
-		slots.emplace_back("component_" + std::to_string(index + 1), type);
-	return slots;
-}
-
 
 FunctionType::FunctionType(FunctionDefinition const& _function, Kind _kind):
 	m_kind(_kind),

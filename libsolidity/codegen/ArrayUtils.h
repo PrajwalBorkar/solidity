@@ -30,8 +30,8 @@ namespace solidity::frontend
 
 class ArrayType;
 class CompilerContext;
-class InlineArrayType;
 class StringLiteralType;
+class TupleType;
 class Type;
 
 /**
@@ -54,7 +54,7 @@ public:
 	/// Stack post: ... target_reference
 	void moveInlineArrayToStorage(
 		ArrayType const& _targetType,
-		InlineArrayType const& _sourceType,
+		TupleType const& _sourceType,
 		unsigned _sourcePosition = 1) const;
 
 	/// Copies the data part of an array (which cannot be dynamically nested) from anywhere
@@ -71,7 +71,7 @@ public:
 	/// Stack pre: source ... target_reference
 	/// Stack post: ... target_reference + length(padded)
 	void moveInlineArrayToMemory(
-		InlineArrayType const& _sourceType,
+		TupleType const& _sourceType,
 		ArrayType const& _targetType,
 		unsigned _sourcePosition,
 		bool _padToWordBoundaries = true) const;

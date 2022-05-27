@@ -741,8 +741,8 @@ string IRGenerator::generateExternalFunction(ContractDefinition const& _contract
 		)X");
 		t("callValueCheck", (_functionType.isPayable() || _contract.isLibrary()) ? "" : callValueCheck());
 
-		unsigned paramVars = make_shared<TupleType>(_functionType.parameterTypes())->sizeOnStack();
-		unsigned retVars = make_shared<TupleType>(_functionType.returnParameterTypes())->sizeOnStack();
+		unsigned paramVars = make_shared<TupleType>(Type::Category::Tuple, _functionType.parameterTypes())->sizeOnStack();
+		unsigned retVars = make_shared<TupleType>(Type::Category::Tuple, _functionType.returnParameterTypes())->sizeOnStack();
 
 		ABIFunctions abiFunctions(m_evmVersion, m_context.revertStrings(), m_context.functionCollector());
 		t("abiDecode", abiFunctions.tupleDecoder(_functionType.parameterTypes()));
