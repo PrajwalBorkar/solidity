@@ -115,6 +115,8 @@ public:
 
 	Result process();
 
+	void printOptions(ostream& _stream, string const& _linePrefix = "") const;
+
 	static TestStats processPath(
 		TestCreator _testCaseCreator,
 		TestOptions const& _options,
@@ -145,6 +147,15 @@ private:
 };
 
 bool TestTool::m_exitRequested = false;
+
+void TestTool::printOptions(ostream& _stream, string const& _linePrefix) const
+{
+	_stream << _linePrefix << "// Run settings:" <<
+		" EVM=" << m_options.evmVersion().name() <<
+		", optimize=" << (m_options.optimize ? "true" : "false") <<
+		", useABIEncoderV1=" << (m_options.useABIEncoderV1 ? "true" : "false") <<
+		", batch=" << (m_options.selectedBatch+1) << "/"  << m_options.batches << endl;
+}
 
 TestTool::Result TestTool::process()
 {
@@ -178,6 +189,7 @@ TestTool::Result TestTool::process()
 						AnsiColorized(cout, formatted, {BOLD, CYAN}) << "  Contract:" << endl;
 						m_test->printSource(cout, "    ", formatted);
 						m_test->printSettings(cout, "    ", formatted);
+						printOptions(cout, "    ");
 
 						cout << endl << outputMessages.str() << endl;
 						return result == TestCase::TestResult::FatalError ? Result::Exception : Result::Failure;
